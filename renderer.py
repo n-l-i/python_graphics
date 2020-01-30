@@ -51,6 +51,13 @@ class Window():
     def get_pixel_xy(self, portion_of_xy):
         return (int(portion_of_xy[0]*self.dimensions_xy[0]),int(portion_of_xy[1]*self.dimensions_xy[1]))
 
+    def remove(self,element):
+        if isinstance(element,Bitmap):
+            pixels = element.get_pixels()
+            for row_of_pixels in pixels:
+                for pixel in row_of_pixels:
+                    element_id = pixel.get_id()
+                    self.canvas.delete(element_id)
         
 class Bitmap():
     def __init__(self,window,portion_dimensions_xy=(1,1),resolution_xy=(128,72),portion_position_xy=(0,0)):
