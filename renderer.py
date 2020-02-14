@@ -21,16 +21,16 @@ class Window():
             outline_colour=fill_colour
         attributes = {"fill":fill_colour,
                    "outline":outline_colour}
-        self.canvas.itemconfigure(element_id, attributes)
+        self.canvas.itemconfigure(element_id,attributes)
         
     def move_element(self,element,diff_xy):
         if isinstance(element,Bitmap):
             pixels = element.get_pixels()
             for row_of_pixels in pixels:
                 for pixel in row_of_pixels:
-                    self.move_element(pixel, diff_xy)
+                    self.move_element(pixel,diff_xy)
             return
-        (diff_x, diff_y) = diff_xy
+        (diff_x,diff_y) = diff_xy
         element_id = element.get_id()
         self.canvas.move(element_id,diff_x,diff_y)
     
@@ -48,10 +48,13 @@ class Window():
     def close(self):
         self.root.destroy()
         
-    def get_pixel_xy(self, portion_of_xy):
+    def portion_to_pixel_xy(self,portion_of_xy):
         return (int(portion_of_xy[0]*self.dimensions_xy[0]),int(portion_of_xy[1]*self.dimensions_xy[1]))
 
     def remove(self,element):
+        if isinstance(element,Rectangle):
+            self.remove(element.bitmap)
+            return
         if isinstance(element,Bitmap):
             pixels = element.get_pixels()
             for row_of_pixels in pixels:
@@ -64,7 +67,7 @@ class Window():
 class Bitmap():
     def __init__(self,window,portion_dimensions_xy=(1,1),resolution_xy=(128,72),portion_position_xy=(0,0)):
         self.window = window
-        dimensions_xy = self.window.get_pixel_xy(portion_dimensions_xy)
+        dimensions_xy = self.window.portion_to_pixel_xy(portion_dimensions_xy)
         resolution_xy = (int(resolution_xy[0]),int(resolution_xy[1]))
         self.portion_position_xy = portion_position_xy
         self.init_pixels(dimensions_xy,resolution_xy)
@@ -95,27 +98,29 @@ class Bitmap():
         return self.pixels
     
     def create_pixel(self,position_xy,dimensions_xy,colour):
-        pixel_position_xy = self.window.get_pixel_xy(self.portion_position_xy)
+        pixel_position_xy = self.window.portion_to_pixel_xy(self.portion_position_xy)
         absolute_position_xy = add(position_xy,pixel_position_xy)
         return self.window.create_rectangle(absolute_position_xy,dimensions_xy,colour)
     
-    def recolour_pixel(self,pixel,colour):
-        self.window.set_colour_rectangle(pixel,colour)
-        
-    def relocate_pixel(self,pixel,diff_xy):
-        self.window.move_rectangle(pixel,diff_xy)
+    def recolour_pixel(self,colour,pixel=None):
+        if pixel is None:
+            for row_of_pixels in self.get_pixels():
+                for pixel in row_of_pixels:
+                    self.recolour_pixel(colour,pixel)
+        else:
+            self.window.set_colour_rectangle(pixel,colour)
     
     def move_by(self,portion_diff_xy):
-        old_xy = self.window.get_pixel_xy(self.portion_position_xy)
+        old_xy = self.window.portion_to_pixel_xy(self.portion_position_xy)
         self.portion_position_xy = add(self.portion_position_xy,portion_diff_xy)
-        new_xy = self.window.get_pixel_xy(self.portion_position_xy)
+        new_xy = self.window.portion_to_pixel_xy(self.portion_position_xy)
         pixel_diff_xy = add(new_xy,negative(old_xy))
         self.window.move_element(self,pixel_diff_xy)
         
     def move_to(self,new_portion_position_xy):
-        old_xy = self.window.get_pixel_xy(self.portion_position_xy)
+        old_xy = self.window.portion_to_pixel_xy(self.portion_position_xy)
         self.portion_position_xy = new_portion_position_xy
-        new_xy = self.window.get_pixel_xy(self.portion_position_xy)
+        new_xy = self.window.portion_to_pixel_xy(self.portion_position_xy)
         pixel_diff_xy = add(new_xy,negative(old_xy))
         self.window.move_element(self,pixel_diff_xy)
     
@@ -133,7 +138,22 @@ class Bitmap():
             
         def set_colour(self,colour):
             self.colour = colour
-            self.bitmap.recolour_pixel(self,self.colour)
+            self.bitmap.recolour_pixel(self.colour,self)
+            
+        
+class Rectangle():
+    def __init__(self,window,position_xy=(0,0),dimensions_xy=(1,1),colour="white"):
+        self.bitmap = Bitmap(window,dimensions_xy,(1,1),position_xy)
+        self.recolour(colour)
+    
+    def recolour(self,colour):
+        self.bitmap.recolour_pixel(colour)
+    
+    def move_by(self,portion_diff_xy):
+        self.bitmap.move_by(portion_diff_xy)
+        
+    def move_to(self,new_portion_position_xy):
+        self.bitmap.move_to(new_portion_position_xy)
 
         
 def add(tuple_a,tuple_b):
