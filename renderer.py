@@ -102,14 +102,14 @@ class Bitmap():
         absolute_position_xy = add(position_xy,pixel_position_xy)
         return self.window.create_rectangle(absolute_position_xy,dimensions_xy,colour)
     
-    def recolour_pixel(self,colour,pixel=None):
-        if pixel is None:
-            for row_of_pixels in self.get_pixels():
-                for pixel in row_of_pixels:
-                    self.recolour_pixel(colour,pixel)
-        else:
-            self.window.set_colour_rectangle(pixel,colour)
-    
+    def recolour_pixel(self,colour,pixel):
+        self.window.set_colour_rectangle(pixel,colour)
+            
+    def fill_colour(self,colour):
+        for row_of_pixels in self.get_pixels():
+            for pixel in row_of_pixels:
+                self.recolour_pixel(colour,pixel)
+
     def move_by(self,portion_diff_xy):
         old_xy = self.window.portion_to_pixel_xy(self.portion_position_xy)
         self.portion_position_xy = add(self.portion_position_xy,portion_diff_xy)
@@ -147,7 +147,7 @@ class Rectangle():
         self.recolour(colour)
     
     def recolour(self,colour):
-        self.bitmap.recolour_pixel(colour)
+        self.bitmap.fill_colour(colour)
     
     def move_by(self,portion_diff_xy):
         self.bitmap.move_by(portion_diff_xy)
