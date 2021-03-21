@@ -12,7 +12,7 @@ class Window():
         self.canvas = tkinter.Canvas(self.root,width=self.dimensions_xy[0],height=self.dimensions_xy[1],bg="white")
         self.canvas.pack()
         
-    def set_colour_rectangle(self,element,fill_colour,outline_colour=None):
+    def set_colour_element(self,element,fill_colour,outline_colour=None):
         if isinstance(element,int):
             element_id = element
         else:
@@ -39,7 +39,7 @@ class Window():
         (x1,y1)=position_xy
         (x2,y2)=add(position_xy,dimensions_xy)
         element_id = self.canvas.create_rectangle(x1,y1,x2,y2,attributes)
-        self.set_colour_rectangle(element_id,fill_colour,outline_colour)
+        self.set_colour_element(element_id,fill_colour,outline_colour)
         return element_id
         
     def update(self):
@@ -53,7 +53,7 @@ class Window():
 
     def remove(self,element):
         if isinstance(element,Rectangle):
-            self.remove(element.bitmap)
+            self.remove(element.element)
             return
         if isinstance(element,Bitmap):
             pixels = element.get_pixels()
@@ -64,6 +64,43 @@ class Window():
         element_id = element.get_id()
         self.canvas.delete(element_id)
         
+        
+class Element():
+    def __init__(self,element,window,portion_position_xy=(0,0),portion_dimensions_xy=(1,1)):
+        self.window = window
+        self.portion_dimensions_xy = self.window.portion_to_pixel_xy(portion_dimensions_xy)
+        self.portion_position_xy = portion_position_xy
+        self.element_id = self.create_element(element,portion_position_xy,portion_dimensions_xy)
+        
+    def get_id(self):
+        return self.element_id
+        
+    def create_element(self,element,position_xy,dimensions_xy,colour="white"):
+        absolute_position_xy = self.window.portion_to_pixel_xy(position_xy)
+        absolute_dimensions_xy = self.window.portion_to_pixel_xy(dimensions_xy)
+        if isinstance(element,Rectangle):
+            return self.window.create_rectangle(absolute_position_xy,absolute_dimensions_xy,colour)
+        else:
+            raise Exception("Tried to create element of undefined type.")
+    
+    def set_colour(self,colour):
+        self.window.set_colour_element(self.element_id,colour)
+
+    def move_by(self,portion_diff_xy):
+        old_xy = self.window.portion_to_pixel_xy(self.portion_position_xy)
+        self.portion_position_xy = add(self.portion_position_xy,portion_diff_xy)
+        new_xy = self.window.portion_to_pixel_xy(self.portion_position_xy)
+        pixel_diff_xy = add(new_xy,negative(old_xy))
+        self.window.move_element(self,pixel_diff_xy)
+        
+    def move_to(self,new_portion_position_xy):
+        old_xy = self.window.portion_to_pixel_xy(self.portion_position_xy)
+        self.portion_position_xy = new_portion_position_xy
+        new_xy = self.window.portion_to_pixel_xy(self.portion_position_xy)
+        pixel_diff_xy = add(new_xy,negative(old_xy))
+        self.window.move_element(self,pixel_diff_xy)
+
+
 class Bitmap():
     def __init__(self,window,portion_dimensions_xy=(1,1),resolution_xy=(128,72),portion_position_xy=(0,0)):
         self.window = window
@@ -103,7 +140,7 @@ class Bitmap():
         return self.window.create_rectangle(absolute_position_xy,dimensions_xy,colour)
     
     def recolour_pixel(self,colour,pixel):
-        self.window.set_colour_rectangle(pixel,colour)
+        self.window.set_colour_element(pixel,colour)
             
     def fill_colour(self,colour):
         for row_of_pixels in self.get_pixels():
@@ -143,17 +180,17 @@ class Bitmap():
         
 class Rectangle():
     def __init__(self,window,position_xy=(0,0),dimensions_xy=(1,1),colour="white"):
-        self.bitmap = Bitmap(window,dimensions_xy,(1,1),position_xy)
-        self.recolour(colour)
+        self.element = Element(self,window,position_xy,dimensions_xy)
+        self.set_colour(colour)
     
-    def recolour(self,colour):
-        self.bitmap.fill_colour(colour)
+    def set_colour(self,colour):
+        self.element.set_colour(colour)
     
     def move_by(self,portion_diff_xy):
-        self.bitmap.move_by(portion_diff_xy)
+        self.element.move_by(portion_diff_xy)
         
     def move_to(self,new_portion_position_xy):
-        self.bitmap.move_to(new_portion_position_xy)
+        self.element.move_to(new_portion_position_xy)
 
         
 def add(tuple_a,tuple_b):
