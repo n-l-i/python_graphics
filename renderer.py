@@ -1,6 +1,14 @@
 
 import tkinter,math
 
+# constants
+class OBJ_TYPE(object):
+    __slots__ = ()
+    RECTANGLE = "rectangle"
+    OVAL = "oval"
+OBJ_TYPE = OBJ_TYPE()
+    
+
 class Window():
     def __init__(self,dimensions_xy=(1280,720),position_xy=(0,0)):
         self.dimensions_xy = (int(dimensions_xy[0]),int(dimensions_xy[1]))
@@ -34,11 +42,16 @@ class Window():
         element_id = element.get_id()
         self.canvas.move(element_id,diff_x,diff_y)
     
-    def create_rectangle(self,position_xy,dimensions_xy,fill_colour,outline_colour=None):
+    def create_element(self,obj_type,position_xy,dimensions_xy,fill_colour,outline_colour=None):
         attributes = {}
         (x1,y1)=position_xy
         (x2,y2)=add(position_xy,dimensions_xy)
-        element_id = self.canvas.create_rectangle(x1,y1,x2,y2,attributes)
+        if obj_type == OBJ_TYPE.RECTANGLE:
+            element_id = self.canvas.create_rectangle(x1,y1,x2,y2,attributes)
+        elif obj_type == OBJ_TYPE.OVAL:
+            element_id = self.canvas.create_oval(x1,y1,x2,y2,attributes)
+        else:
+            raise Exception("Tried to create element of undefined type: "+str(obj_type))
         self.set_colour_element(element_id,fill_colour,outline_colour)
         return element_id
         
@@ -55,6 +68,9 @@ class Window():
         if isinstance(element,Rectangle):
             self.remove(element.element)
             return
+        if isinstance(element,Oval):
+            self.remove(element.element)
+            return
         if isinstance(element,Bitmap):
             pixels = element.get_pixels()
             for row_of_pixels in pixels:
@@ -66,22 +82,19 @@ class Window():
         
         
 class Element():
-    def __init__(self,element,window,portion_position_xy=(0,0),portion_dimensions_xy=(1,1)):
+    def __init__(self,obj_type,window,portion_position_xy=(0,0),portion_dimensions_xy=(1,1)):
         self.window = window
         self.portion_dimensions_xy = self.window.portion_to_pixel_xy(portion_dimensions_xy)
         self.portion_position_xy = portion_position_xy
-        self.element_id = self.create_element(element,portion_position_xy,portion_dimensions_xy)
+        self.element_id = self.create_element(obj_type,portion_position_xy,portion_dimensions_xy)
         
     def get_id(self):
         return self.element_id
         
-    def create_element(self,element,position_xy,dimensions_xy,colour="white"):
+    def create_element(self,obj_type,position_xy,dimensions_xy,colour="white"):
         absolute_position_xy = self.window.portion_to_pixel_xy(position_xy)
         absolute_dimensions_xy = self.window.portion_to_pixel_xy(dimensions_xy)
-        if isinstance(element,Rectangle):
-            return self.window.create_rectangle(absolute_position_xy,absolute_dimensions_xy,colour)
-        else:
-            raise Exception("Tried to create element of undefined type.")
+        return self.window.create_element(obj_type,absolute_position_xy,absolute_dimensions_xy,colour)
     
     def set_colour(self,colour):
         self.window.set_colour_element(self.element_id,colour)
@@ -137,7 +150,7 @@ class Bitmap():
     def create_pixel(self,position_xy,dimensions_xy,colour):
         pixel_position_xy = self.window.portion_to_pixel_xy(self.portion_position_xy)
         absolute_position_xy = add(position_xy,pixel_position_xy)
-        return self.window.create_rectangle(absolute_position_xy,dimensions_xy,colour)
+        return self.window.create_element(OBJ_TYPE.RECTANGLE,absolute_position_xy,dimensions_xy,colour)
     
     def recolour_pixel(self,colour,pixel):
         self.window.set_colour_element(pixel,colour)
@@ -180,7 +193,22 @@ class Bitmap():
         
 class Rectangle():
     def __init__(self,window,position_xy=(0,0),dimensions_xy=(1,1),colour="white"):
-        self.element = Element(self,window,position_xy,dimensions_xy)
+        self.element = Element(OBJ_TYPE.RECTANGLE,window,position_xy,dimensions_xy)
+        self.set_colour(colour)
+    
+    def set_colour(self,colour):
+        self.element.set_colour(colour)
+    
+    def move_by(self,portion_diff_xy):
+        self.element.move_by(portion_diff_xy)
+        
+    def move_to(self,new_portion_position_xy):
+        self.element.move_to(new_portion_position_xy)
+        
+        
+class Oval():
+    def __init__(self,window,position_xy=(0,0),dimensions_xy=(1,1),colour="white"):
+        self.element = Element(OBJ_TYPE.OVAL,window,position_xy,dimensions_xy)
         self.set_colour(colour)
     
     def set_colour(self,colour):
