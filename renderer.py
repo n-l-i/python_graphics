@@ -70,6 +70,9 @@ class Window():
         if isinstance(element,Oval):
             self.remove(element.element)
             return
+        if isinstance(element,Text):
+            self.remove(element.element)
+            return
         if isinstance(element,Bitmap):
             pixels = element.get_pixels()
             for row_of_pixels in pixels:
