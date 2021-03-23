@@ -7,6 +7,7 @@ class OBJ_TYPE(object):
     __slots__ = ()
     RECTANGLE = "rectangle"
     OVAL = "oval"
+    TEXT = "text"
 OBJ_TYPE = OBJ_TYPE()
     
 
@@ -47,6 +48,8 @@ class Window():
             element_id = self.canvas.create_rectangle(x1,y1,x2,y2,attributes)
         elif obj_type == OBJ_TYPE.OVAL:
             element_id = self.canvas.create_oval(x1,y1,x2,y2,attributes)
+        elif obj_type == OBJ_TYPE.TEXT:
+            element_id = self.canvas.create_text(x1,y1,attributes)
         else:
             raise Exception("Tried to create element of undefined type: "+str(obj_type))
         return element_id
@@ -96,7 +99,16 @@ class Element():
     
     def set_colour(self,colour):
         self.attributes["fill"] = colour
-        self.attributes["outline"] = colour
+        if self.obj_type != OBJ_TYPE.TEXT:
+            self.attributes["outline"] = colour
+        self.window.set_element_attributes(self.element_id,self.attributes)
+    
+    def set_text(self,text):
+        self.attributes["text"] = text
+        self.window.set_element_attributes(self.element_id,self.attributes)
+    
+    def set_font(self,font):
+        self.attributes["font"] = font
         self.window.set_element_attributes(self.element_id,self.attributes)
 
     def move_by(self,portion_diff_xy):
@@ -224,6 +236,40 @@ class Oval():
     
     def set_colour(self,colour):
         self.element.set_colour(colour)
+    
+    def move_by(self,portion_diff_xy):
+        self.element.move_by(portion_diff_xy)
+        
+    def move_to(self,new_portion_position_xy):
+        self.element.move_to(new_portion_position_xy)
+        
+class Text():
+    def __init__(self,window,position_xy=(0,0),text="Default text.",typeface="arial",size=12,style="normal",colour="black"):
+        self.element = Element(OBJ_TYPE.TEXT,window,position_xy,(1,1))
+        self.text = text
+        self.element.set_text(text)
+        self.font = (typeface,size,style)
+        self.element.set_font(self.font)
+        self.set_colour(colour)
+    
+    def set_text(self,text):
+        self.text = text
+        self.element.set_text(text)
+    
+    def set_colour(self,colour):
+        self.element.set_colour(colour)
+    
+    def set_typeface(self,typeface):
+        self.font = (typeface,self.font[1],self.font[2])
+        self.element.set_font(self.font)
+        
+    def set_size(self,size):
+        self.font = (self.font[0],size,self.font[2])
+        self.element.set_font(self.font)
+        
+    def set_style(self,style):
+        self.font = (self.font[0],self.font[1],style)
+        self.element.set_font(self.font)
     
     def move_by(self,portion_diff_xy):
         self.element.move_by(portion_diff_xy)
