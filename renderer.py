@@ -1,5 +1,6 @@
 
-import tkinter,math
+import tkinter
+import math
 
 # constants
 class OBJ_TYPE(object):
@@ -20,15 +21,11 @@ class Window():
         self.canvas = tkinter.Canvas(self.root,width=self.dimensions_xy[0],height=self.dimensions_xy[1],bg="white")
         self.canvas.pack()
         
-    def set_colour_element(self,element,fill_colour,outline_colour=None):
+    def set_element_attributes(self,element,attributes):
         if isinstance(element,int):
             element_id = element
         else:
             element_id = element.get_id()
-        if outline_colour==None:
-            outline_colour=fill_colour
-        attributes = {"fill":fill_colour,
-                   "outline":outline_colour}
         self.canvas.itemconfigure(element_id,attributes)
         
     def move_element(self,element,diff_xy):
@@ -42,7 +39,7 @@ class Window():
         element_id = element.get_id()
         self.canvas.move(element_id,diff_x,diff_y)
     
-    def create_element(self,obj_type,position_xy,dimensions_xy,fill_colour,outline_colour=None):
+    def create_element(self,obj_type,position_xy,dimensions_xy):
         attributes = {}
         (x1,y1)=position_xy
         (x2,y2)=add(position_xy,dimensions_xy)
@@ -52,7 +49,6 @@ class Window():
             element_id = self.canvas.create_oval(x1,y1,x2,y2,attributes)
         else:
             raise Exception("Tried to create element of undefined type: "+str(obj_type))
-        self.set_colour_element(element_id,fill_colour,outline_colour)
         return element_id
         
     def update(self):
@@ -86,18 +82,22 @@ class Element():
         self.window = window
         self.portion_dimensions_xy = self.window.portion_to_pixel_xy(portion_dimensions_xy)
         self.portion_position_xy = portion_position_xy
+        self.attributes = {}
+        self.obj_type = obj_type
         self.element_id = self.create_element(obj_type,portion_position_xy,portion_dimensions_xy)
         
     def get_id(self):
         return self.element_id
         
-    def create_element(self,obj_type,position_xy,dimensions_xy,colour="white"):
+    def create_element(self,obj_type,position_xy,dimensions_xy):
         absolute_position_xy = self.window.portion_to_pixel_xy(position_xy)
         absolute_dimensions_xy = self.window.portion_to_pixel_xy(dimensions_xy)
-        return self.window.create_element(obj_type,absolute_position_xy,absolute_dimensions_xy,colour)
+        return self.window.create_element(obj_type,absolute_position_xy,absolute_dimensions_xy)
     
     def set_colour(self,colour):
-        self.window.set_colour_element(self.element_id,colour)
+        self.attributes["fill"] = colour
+        self.attributes["outline"] = colour
+        self.window.set_element_attributes(self.element_id,self.attributes)
 
     def move_by(self,portion_diff_xy):
         old_xy = self.window.portion_to_pixel_xy(self.portion_position_xy)
@@ -150,10 +150,13 @@ class Bitmap():
     def create_pixel(self,position_xy,dimensions_xy,colour):
         pixel_position_xy = self.window.portion_to_pixel_xy(self.portion_position_xy)
         absolute_position_xy = add(position_xy,pixel_position_xy)
-        return self.window.create_element(OBJ_TYPE.RECTANGLE,absolute_position_xy,dimensions_xy,colour)
+        return self.window.create_element(OBJ_TYPE.RECTANGLE,absolute_position_xy,dimensions_xy)
     
     def recolour_pixel(self,colour,pixel):
-        self.window.set_colour_element(pixel,colour)
+        attributes = pixel.get_attributes()
+        attributes["fill"] = colour
+        attributes["outline"] = colour
+        self.window.set_element_attributes(pixel,attributes)
             
     def fill_colour(self,colour):
         for row_of_pixels in self.get_pixels():
@@ -176,23 +179,31 @@ class Bitmap():
     
         
     class Pixel():
-        def __init__(self,bitmap,position_xy,dimensions_xy,colour="white"):
+        def __init__(self,bitmap,position_xy,dimensions_xy,colour="black"):
             self.bitmap = bitmap
             self.position_xy=position_xy
             self.dimensions_xy=dimensions_xy
             self.colour = colour
+            self.attributes = {}
+            self.attributes["fill"] = colour
+            self.attributes["outline"] = colour
             self.element_id = self.bitmap.create_pixel(self.position_xy,self.dimensions_xy,self.colour)
         
         def get_id(self):
             return self.element_id
+        
+        def get_attributes(self):
+            return self.attributes
             
         def set_colour(self,colour):
             self.colour = colour
+            self.attributes["fill"] = colour
+            self.attributes["outline"] = colour
             self.bitmap.recolour_pixel(self.colour,self)
             
         
 class Rectangle():
-    def __init__(self,window,position_xy=(0,0),dimensions_xy=(1,1),colour="white"):
+    def __init__(self,window,position_xy=(0,0),dimensions_xy=(1,1),colour="black"):
         self.element = Element(OBJ_TYPE.RECTANGLE,window,position_xy,dimensions_xy)
         self.set_colour(colour)
     
@@ -207,7 +218,7 @@ class Rectangle():
         
         
 class Oval():
-    def __init__(self,window,position_xy=(0,0),dimensions_xy=(1,1),colour="white"):
+    def __init__(self,window,position_xy=(0,0),dimensions_xy=(1,1),colour="black"):
         self.element = Element(OBJ_TYPE.OVAL,window,position_xy,dimensions_xy)
         self.set_colour(colour)
     
